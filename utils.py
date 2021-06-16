@@ -153,20 +153,6 @@ def load_data(IC, drug_dict, cell_dict, edge_index, model, args):
         train_set, val_set, test_set = scaffold_split(IC, smiles_list, seed=42)
 
     elif args.setup == 'leave_cell_out':
-        ## random
-        # np.random.seed(42)
-        # cell_list = IC['Cell line name'].unique()
-        # shuffled_indices = np.random.permutation(len(cell_list))
-        # test_set_size = val_set_size = int(len(cell_list) * 0.1)
-        #
-        # test_indices = shuffled_indices[:test_set_size]
-        # val_indices = shuffled_indices[test_set_size:test_set_size + val_set_size]
-        # train_indices = shuffled_indices[test_set_size + val_set_size:]
-        #
-        # train_set = IC[IC['Cell line name'].isin(cell_list[train_indices])]
-        # val_set = IC[IC['Cell line name'].isin(cell_list[val_indices])]
-        # test_set = IC[IC['Cell line name'].isin(cell_list[test_indices])I]
-
         ## stratify
         cell_info = IC[['Tissue', 'Cell line name']].drop_duplicates()
         train_cell, val_test_cell = train_test_split(cell_info, stratify=cell_info['Tissue'], test_size=0.4,
