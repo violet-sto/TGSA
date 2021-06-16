@@ -85,66 +85,9 @@ def download_smiles():
     pychem_cid.to_csv("./data/drug_smiles.csv", index=False)
 
 
-"""
-The following part will prepare the mutation features for the cell.
-"""
-
-
-def save_cell_mut_matrix():
-    f = open("/home/zhuyiheng/github_code/tCNNS-Project/data/PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
-    reader = csv.reader(f)
-    next(reader)
-    cell_dict = {}
-    mut_dict = {}
-
-    matrix_list = []
-    organ1_dict = {}
-    organ2_dict = {}
-    for item in reader:
-        cell = item[0]
-        mut = item[5]
-        organ1_dict[cell] = item[2]
-        organ2_dict[cell] = item[3]
-        is_mutated = int(item[6])
-        if cell in cell_dict:
-            row = cell_dict[cell]
-        else:
-            row = len(cell_dict)
-            cell_dict[cell] = row
-        if mut in mut_dict:
-            col = mut_dict[mut]
-        else:
-            col = len(mut_dict)
-            mut_dict[mut] = col
-        matrix_list.append((row, col, is_mutated))
-
-    matrix = np.ones(shape=(len(cell_dict), len(mut_dict)), dtype=np.float32)
-    matrix = matrix * -1
-    for item in matrix_list:
-        matrix[item[0], item[1]] = item[2]
-
-    feature_num = [len(list(filter(lambda x: x >= 0, list(matrix[i, :])))) for i in range(len(cell_dict))]
-    indics = [i for i in range(len(feature_num)) if feature_num[i] == 735]
-    matrix = matrix[indics, :]
-
-    inv_cell_dict = {v: k for k, v in cell_dict.items()}
-    all_names = [inv_cell_dict[i] for i in range(len(inv_cell_dict))]
-    cell_names = np.array([all_names[i] for i in indics])
-
-    cell_dict = {}
-    for i in range(len(matrix)):
-        cell_dict[cell_names[i]] = matrix[i]
-
-    np.save("./data/cell_feature.npy", cell_dict)
-    print("finish saving cell mut data!")
-
-    return cell_dict
-
-
 def main():
     write_drug_cid()
-    # download_smiles()
-    # save_cell_mut_matrix()
+    download_smiles()
 
 
 if __name__ == "__main__":

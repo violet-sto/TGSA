@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+import csv
 import scipy
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from torch_geometric.data import Data
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 
-def get_genes_graph(genes_path, save_path, method='pearson', thresh=0.5, p_value=False):
+def get_genes_graph(genes_path, save_path, method='pearson', thresh=0.95, p_value=False):
     """
     根据表达量计算基因相关系数，确定邻接矩阵
     :param genes_exp_path:
@@ -33,6 +34,60 @@ def get_genes_graph(genes_path, save_path, method='pearson', thresh=0.5, p_value
     np.save(os.path.join(save_path, 'edge_index_{}_{}.npy').format(method, thresh), edge_index)
 
     return n, edge_index
+
+
+
+def ensp_to_hugo_map():
+    with open('./data/9606.protein.info.v11.0.txt') as csv_file:
+        next(csv_file)  # Skip first line
+        csv_reader = csv.reader(csv_file, delimiter='\t')
+        ensp_map = {row[0]: row[1] for row in csv_reader if row[0] != ""}
+
+    return ensp_map
+
+def hugo_to_ncbi_map():
+    with open('./data/enterez_NCBI_to_hugo_gene_symbol_march_2019.txt') as csv_file:
+        next(csv_file)  # Skip first line
+        csv_reader = csv.reader(csv_file, delimiter='\t')
+        hugo_map = {row[0]: int(row[1]) for row in csv_reader if row[1] != ""}
+
+    return hugo_map
+
+def STRING_graph(exp_path, thresh=0.95):
+
+    # gene_list
+    exp = pd.read_csv(exp_path, index_col=0)
+    gene_list = exp.columns.to_list()
+    gene_list = [int(gene[1:-1]) for gene in gene_list]
+
+    # load STRING
+    ensp_map = ensp_to_hugo_map()
+    hugo_map = hugo_to_ncbi_map()
+    edges = pd.read_csv('./data/9606.protein.links.detailed.v11.0.txt', sep=' ')
+
+    # edge_index
+    selected_edges = edges['combined_score'] > (thresh * 1000)
+    edge_list = edges[selected_edges][["protein1", "protein2"]].values.tolist()
+
+    edge_list = [[ensp_map[edge[0]], ensp_map[edge[1]]] for edge in edge_list if
+                 edge[0] in ensp_map.keys() and edge[1] in ensp_map.keys()]
+
+    edge_list = [[hugo_map[edge[0]], hugo_map[edge[1]]] for edge in edge_list if
+                 edge[0] in hugo_map.keys() and edge[1] in hugo_map.keys()]
+    edge_index = []
+    for i in edge_list:
+        if (i[0] in gene_list) & (i[1] in gene_list):
+            edge_index.append((gene_list.index(i[0]), gene_list.index(i[1])))
+            edge_index.append((gene_list.index(i[1]), gene_list.index(i[0])))
+    edge_index = list(set(edge_index))
+    edge_index = np.array(edge_index, dtype=np.int64).T
+
+    # 保存edge_index
+    print(len(gene_list))
+    print(thresh, len(edge_index[0]) / len(gene_list))
+    np.save(os.path.join('./data/CellLines_DepMap/CCLE_580_18281/census_706/', 'edge_index_PPI_{}.npy'.format(thresh)),
+            edge_index)
+
 
 
 def save_cell_graph(genes_path, save_path):
@@ -64,9 +119,6 @@ def save_cell_graph(genes_path, save_path):
         cell_dict[i] = Data(x=torch.tensor([exp.loc[i], cn.loc[i], mu.loc[i]], dtype=torch.float).T)
         # cell_dict[i] = [np.array(exp.loc[i], dtype=np.float32), np.array(cn.loc[i], dtype=np.float32),
         #                 np.array(mu.loc[i], dtype=np.float32)]
-        # cell_dict[i] = Data(x=torch.tensor([exp.loc[i]], dtype=torch.float).T)
-        # cell_dict[i] = Data(x=torch.tensor([cn.loc[i]], dtype=torch.float).T)
-        # cell_dict[i] = Data(x=torch.tensor([mu.loc[i]], dtype=torch.float).T)
 
     np.save(os.path.join(save_path, 'cell_feature_all.npy'), cell_dict)
     print("finish saving cell mut data!")
@@ -75,10 +127,7 @@ def save_cell_graph(genes_path, save_path):
 if __name__ == '__main__':
     # 注意基因个数，两个函数和两个参数都要改
 
-    gene_path = './data/CellLines_DepMap/CCLE_605_18281/census_706'
-    save_path = './data/CellLines_DepMap/CCLE_605_18281/census_706/'
-    # get_genes_graph(gene_path, save_path, thresh=0.35, method='spearman')
-    # get_genes_graph(gene_path, save_path, thresh=0.45, method='spearman')
-    # get_genes_graph(gene_path, save_path, thresh=0.55, method='pearson')
+    gene_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
+    save_path = './data/CellLines_DepMap/CCLE_580_18281/census_706/'
 
     save_cell_graph(gene_path, save_path)
