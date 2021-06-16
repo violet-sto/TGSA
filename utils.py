@@ -631,16 +631,16 @@ class MyDataset_SA(Dataset):
         return (self.drug_name2idx_dict[self.drug_name[index]], self.cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
     
     
-   def load_data_SA(args):
-        IC = pd.read_csv('./data/PANCANCER_IC_82833_580_170.csv')
-        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
-        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
-                                             stratify=val_test_set['Cell line name'])
-        train_data, val_data, test_data = MyDataset_SA(train_set), MyDataset_SA(val_set), MyDataset_SA(test_set)
-        train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
-        test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
-        return train_loader, val_loader, test_loader
+def load_data_SA(args):
+    IC = pd.read_csv('./data/PANCANCER_IC_82833_580_170.csv')
+    train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
+    val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+                                         stratify=val_test_set['Cell line name'])
+    train_data, val_data, test_data = MyDataset_SA(train_set), MyDataset_SA(val_set), MyDataset_SA(test_set)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
+    return train_loader, val_loader, test_loader
 
 def load_graph_data(args):
     drug_id2graph_dict = np.load('./data/feature/drug_feature_graph.npy', allow_pickle=True).item()
