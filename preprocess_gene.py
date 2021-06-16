@@ -11,19 +11,20 @@ from sklearn.impute import SimpleImputer
 
 def get_genes_graph(genes_path, save_path, method='pearson', thresh=0.95, p_value=False):
     """
-    根据表达量计算基因相关系数，确定邻接矩阵
+    determining adjaceny matrix based on correlation
     :param genes_exp_path:
-    :return: 根据基因表达量构图
+    :return:
     """
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     genes_exp_df = pd.read_csv(os.path.join(genes_path, 'exp.csv'), index_col=0)
-    # 计算相关矩阵
+
+    # calculate correlation matrix
     genes_exp_corr = genes_exp_df.corr(method=method)
     genes_exp_corr = genes_exp_corr.apply(lambda x: abs(x))
     n = genes_exp_df.shape[0]
 
-    # 根据相关系数确定邻接矩阵(未考虑p值，因为p=0.05的时候，图太密集）
+    # binarize
     if p_value == True:
         dist = scipy.stats.beta(n / 2 - 1, n / 2 - 1, loc=-1, scale=2)
         thresh = dist.isf(0.05)
@@ -125,7 +126,6 @@ def save_cell_graph(genes_path, save_path):
 
 
 if __name__ == '__main__':
-    # 注意基因个数，两个函数和两个参数都要改
 
     gene_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
     save_path = './data/CellLines_DepMap/CCLE_580_18281/census_706/'
