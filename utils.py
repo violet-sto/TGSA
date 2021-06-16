@@ -16,6 +16,15 @@ from collections import defaultdict
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
+dict = './data/similarity_graph_data/dict'
+with open(dict + "cell_id2idx_dict", 'rb') as f:
+    cell_id2idx_dict = pickle.load(f)
+with open(dict + "drug_name2idx_dict", 'rb') as f:
+    drug_name2idx_dict = pickle.load(f)
+with open(dict + "cell_idx2id_dict", 'rb') as f:
+    cell_idx2id_dict = pickle.load(f)
+with open(dict + "drug_idx2name_dict", 'rb') as f:
+    drug_idx2name_dict = pickle.load(f)
 
 
 def train(model, loader, criterion, opt, device):
@@ -564,3 +573,98 @@ def scaffold_split(dataset, smiles_name_list, frac_train=0.6, frac_valid=0.2, fr
     test_dataset = dataset[dataset['Drug name'].isin(test_idx)]
 
     return train_dataset, valid_dataset, test_dataset
+
+def train_SA(train_loader, model, loss_fn, optimizer, args):
+    model.train()
+    for step, data in enumerate(tqdm(train_loader, desc='Iteration')):
+        drug, cell, ic50 = data
+        ic50 = ic50.to(args.device)
+        prediction = model(drug, cell)
+        loss = loss_fn(prediction, ic50.view(-1, 1).float())
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    print('Train Loss:{}'.format(loss))
+    return loss
+
+
+def validate_SA(loader, model, args):
+    model.eval()
+    y_true = []
+    y_pred = []
+    total_loss = 0
+    with torch.no_grad():
+        for step, data in enumerate(tqdm(loader, desc='Iteration')):
+            drug, cell, ic50 = data
+            prediction = model(drug, cell)
+            ic50 = ic50.to(args.device)
+            total_loss += F.mse_loss(prediction, ic50.view(-1, 1).float(), reduction='sum')
+            y_true.append(ic50.view(-1, 1))
+            y_pred.append(prediction)
+
+    y_true = torch.cat(y_true, dim=0)
+    y_pred = torch.cat(y_pred, dim=0)
+    rmse = torch.sqrt(total_loss / len(loader.dataset))
+    MAE = mean_absolute_error(y_true.cpu(), y_pred.cpu())
+    r2 = r2_score(y_true.cpu(), y_pred.cpu())
+    r, _= pearsonr(y_true.cpu().numpy().flatten(), y_pred.cpu().numpy().flatten())
+
+    return rmse, MAE, r2, r 
+
+class MyDataset_SA(Dataset):
+    def __init__(self, IC):
+        super(MyDataset_SA, self).__init__()
+        with open('pyg_data/' + "cell_id2idx_dict", 'rb') as f:
+            self.cell_id2idx_dict = pickle.load(f)
+        with open('pyg_data/' + "drug_name2idx_dict", 'rb') as f:
+            self.drug_name2idx_dict = pickle.load(f)
+        IC.reset_index(drop=True, inplace=True)
+        self.drug_name = IC['Drug name']
+        self.Cell_line_name = IC['DepMap_ID']
+        self.value = IC['IC50']
+
+    def __len__(self):
+        return len(self.value)
+
+    def __getitem__(self, index):
+        return (self.drug_name2idx_dict[self.drug_name[index]], self.cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
+    
+    
+   def load_data_SA(args):
+        IC = pd.read_csv('./data/PANCANCER_IC_82833_580_170.csv')
+        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
+        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+                                             stratify=val_test_set['Cell line name'])
+        train_data, val_data, test_data = MyDataset_SA(train_set), MyDataset_SA(val_set), MyDataset_SA(test_set)
+        train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
+        val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
+        test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
+        return train_loader, val_loader, test_loader
+
+def load_graph_data(args):
+    drug_id2graph_dict = np.load('./data/feature/drug_feature_graph.npy', allow_pickle=True).item()
+    cell_name2feature_706_3_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
+                                        allow_pickle=True).item()
+    drug_name = pd.read_csv("data/"+"drug_smiles.csv").iloc[:, 0]
+    cell_idx2feature_706_3_dict = {u: cell_name2feature_706_3_dict[v] for u, v in cell_idx2id_dict.items()}
+    drug_idx2graph_dict = {u: drug_id2graph_dict[v] for u, v in enumerate(drug_name)}
+    drug_graph = [x for _, x in drug_idx2graph_dict.items()]
+    cell_graph = [x for _, x in cell_idx2feature_706_3_dict.items()]
+    cell_feature_edge_index = np.load(
+        './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format('PPI_0.95'))
+    cell_feature_edge_index = torch.tensor(cell_feature_edge_index, dtype=torch.long)
+    for u in cell_graph:
+        u.edge_index = cell_feature_edge_index
+    set_random_seed(args.seed)
+    model = TGCN(args).to(args.device)
+    tgcn = torch.load('/model_weights_pretrain/TGCN_{}.pth'.format(args.seed), map_location=args.device)
+    model.load_state_dict(tgcn)
+    drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
+    cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
+    
+    with open("similarity_graph_data/" + "edge/drug_cell_edges_{}_knn".format(args.knn), 'rb') as f:
+        drug_edges, cell_edges = pickle.load(f)
+    drug_edges = torch.tensor(drug_edges, dtype=torch.long).t()
+    cell_edges = torch.tensor(cell_edges, dtype=torch.long).t()
+    return drug_nodes, cell_nodes, drug_edges, cell_edges
