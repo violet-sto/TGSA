@@ -9,7 +9,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 - TGDRP_weights contains the trained weights of TGDRP;
 - utils/ contains the necessary processing subroutines;
 - preprocess_gene.py preprocessing for genetic profiles;
-- preprocess.py and smiles2graph.py preprocessing for drug;
+- smiles2graph.py construct molecular graphs based on SMILES;
 - main.py main function for TGDRP (train or test);
 
 Coming soon!
