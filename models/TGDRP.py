@@ -11,18 +11,12 @@ import torch_geometric.transforms as T
 class TGDRP(nn.Module):
     def __init__(self, args):
         super().__init__()
-        self.batch_size = 128
-        self.layer_drug = 3
-        self.dim_drug = 128
-        self.layer_cell = 2
-        self.dim_cell = 8
-        self.dropout_ratio = 0.2
-        # self.batch_size = args.batch_size
-        # self.layer_drug = args.layer_drug
-        # self.dim_drug = args.dim_drug
-        # self.layer_cell = args.layer
-        # self.dim_cell = args.hidden_dim
-        # self.dropout_ratio = args.dropout_ratio
+        self.batch_size = args.batch_size
+        self.layer_drug = args.layer_drug
+        self.dim_drug = args.dim_drug
+        self.layer_cell = args.layer
+        self.dim_cell = args.hidden_dim
+        self.dropout_ratio = args.dropout_ratio
 
         # drug graph branch
         self.GNN_drug = GNN_drug(self.layer_drug, self.dim_drug)
