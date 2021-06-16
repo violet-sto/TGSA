@@ -18,9 +18,10 @@ def load_drug_list():
 
 
 def write_drug_cid():
-    drugs = load_drug_list()
+    drug_list = pd.read_csv('./data/IC50_GDSC/drug_list.csv')
+    drugs = list(drug_list['drug_name'].unique())
     unknow_drugs = []
-    with open('./data/pychem_cid.csv', 'w') as f:
+    with open('./data/pychem_cid_1.csv', 'w') as f:
         wr = csv.writer(f)
         wr.writerow(['drug_name', 'CID'])
         for drug in drugs:
@@ -36,9 +37,9 @@ def write_drug_cid():
                 unknow_drugs.append(drug)
                 print('{} is not found by pychem'.format(drug))
 
-    with open('./data/unknow_drug_by_pychem.csv', 'w') as f:
-        wr = csv.writer(f)
-        wr.writerow(unknow_drugs)
+    # with open('./data/unknow_drug_by_pychem.csv', 'w') as f:
+    #     wr = csv.writer(f)
+    #     wr.writerow(unknow_drugs)
 
 
 # def cid_from_other_source():
@@ -85,64 +86,12 @@ def download_smiles():
 
 
 """
-The following code will convert the SMILES format into onehot format
-"""
-
-
-def string2smiles_list(string):
-    char_list = []
-    i = 1
-    while i < len(string):
-        c = string[i]
-        if c.islower():
-            char_list.append(string[i - 1:i + 1])
-            i += 1
-        else:
-            char_list.append(string[i - 1])
-        i += 1
-    if not string[-1].islower():
-        char_list.append(string[-1])
-    return char_list
-
-
-def onehot_encode(char_list, smiles_string, length):
-    encode_row = lambda char: map(int, [c == char for c in smiles_string])
-    ans = list(map(encode_row, char_list))
-    ans = [list(x) for x in ans]
-    ans = np.array(ans)
-    if ans.shape[1] < length:
-        residual = np.zeros((len(char_list), length - ans.shape[1]), dtype=np.int8)
-        ans = np.concatenate((ans, residual), axis=1)
-    return ans
-
-
-def charsets(smiles):
-    union = lambda x, y: set(x) | set(y)
-    c_chars = list(reduce(union, map(string2smiles_list, list(smiles['CanonicalSMILES']))))
-    c_chars.sort()
-    c_length = max(map(len, map(string2smiles_list, list(smiles['CanonicalSMILES']))))
-    return c_chars, c_length
-
-
-def save_drug_smiles_onehot():
-    smiles = pd.read_csv('./data/drug_smiles.csv')
-    c_chars, c_length = charsets(smiles)
-    print(c_chars)
-    print('max length:{}'.format(c_length))
-    drug_dict = {}
-    for i in range(len(smiles)):
-        drug_dict[smiles.iloc[i, 0]] = onehot_encode(c_chars, smiles.iloc[i, 2], c_length)
-    np.save('./data/drug_feature.npy', drug_dict)
-    return drug_dict
-
-
-"""
 The following part will prepare the mutation features for the cell.
 """
 
 
 def save_cell_mut_matrix():
-    f = open("./data/PANCANCER_Genetic_feature.csv")
+    f = open("/home/zhuyiheng/github_code/tCNNS-Project/data/PANCANCER_Genetic_feature_Tue Oct 31 03_00_35 2017.csv")
     reader = csv.reader(f)
     next(reader)
     cell_dict = {}
@@ -194,9 +143,8 @@ def save_cell_mut_matrix():
 
 def main():
     write_drug_cid()
-    download_smiles()
-    save_drug_smiles_onehot()
-    save_cell_mut_matrix()
+    # download_smiles()
+    # save_cell_mut_matrix()
 
 
 if __name__ == "__main__":

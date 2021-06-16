@@ -1,10 +1,20 @@
 data
+dataset
+data_split
+figure
+figure_high
+figure_low
+InfoGraph
+logs
+chem
 results
 .idea
-cv.sh
+cv_128
 .fitlog/
 .fitconfig
-/logs
+model_weights_cellblind
+model_weights_drugblind
+model_weight_pretrain
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
