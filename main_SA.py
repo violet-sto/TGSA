@@ -46,15 +46,14 @@ def main():
     train_loader, val_loader, test_loader = load_data_SA(args)
     drug_nodes_data, cell_nodes_data, drug_edges, cell_edges = load_graph_data(args)
     model = SA(drug_nodes_data, cell_nodes_data, drug_edges, cell_edges, args).to(args.device)
-    parameter = torch.load("similarity_augment/parameter/parameter_{}.pth".format(args.seed), map_location=args.device)
-    model.regression = parameter['regression']
-    model.drug_emb = parameter['drug_emb']
-    model.cell_emb = parameter['cell_emb']
-    model.drug_conv.load_state_dict(parameter['drug_conv'])
     if args.mode == "train":
         opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         criterion = nn.MSELoss()
-        
+        parameter = torch.load("similarity_augment/parameter/parameter_{}.pth".format(args.seed), map_location=args.device)
+        model.regression = parameter['regression']
+        model.drug_emb = parameter['drug_emb']
+        model.cell_emb = parameter['cell_emb']
+        model.drug_conv.load_state_dict(parameter['drug_conv'])
         log_folder = os.path.join(os.getcwd(), "logs", model._get_name())
         if not os.path.exists(log_folder):
             os.makedirs(log_folder)
