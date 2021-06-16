@@ -12,7 +12,7 @@ def atom_to_feature_vector(atom):
     Converts rdkit atom object to feature list of indices
     :param mol: rdkit atom object
     :return: list
-    前8个属于canonical，后两个属于OGB
+    8 features are canonical, 2 features are from OGB
     """
     featurizer_funcs = ConcatFeaturizer([atom_type_one_hot,
                                          atom_degree_one_hot,
