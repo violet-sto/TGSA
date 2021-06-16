@@ -97,7 +97,7 @@ def save_cell_graph(genes_path, save_path):
     exp = pd.read_csv(os.path.join(genes_path, 'exp.csv'), index_col=0)
     cn = pd.read_csv(os.path.join(genes_path, 'cn.csv'), index_col=0)
     mu = pd.read_csv(os.path.join(genes_path, 'mu.csv'), index_col=0)
-    print('缺失值：{}，{}，{}'.format(exp.isna().sum().sum(), cn.isna().sum().sum(), mu.isna().sum().sum()))
+    print('Miss values：{}，{}，{}'.format(exp.isna().sum().sum(), cn.isna().sum().sum(), mu.isna().sum().sum()))
 
     index = exp.index
     columns = exp.columns
@@ -113,7 +113,7 @@ def save_cell_graph(genes_path, save_path):
     cn = pd.DataFrame(cn, index=index, columns=columns)
     mu = pd.DataFrame(mu, index=index, columns=columns)
     cell_names = exp.index
-    print('缺失值：{}，{}，{}'.format(exp.isna().sum().sum(), cn.isna().sum().sum(), mu.isna().sum().sum()))
+    print('Miss values：{}，{}，{}'.format(exp.isna().sum().sum(), cn.isna().sum().sum(), mu.isna().sum().sum()))
 
     cell_dict = {}
     for i in cell_names:
