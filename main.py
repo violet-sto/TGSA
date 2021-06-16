@@ -61,10 +61,7 @@ def main():
     print(len(IC), len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset))
     print('mean degree:{}'.format(len(edge_index[0]) / 706))
 
-    # model = My_model_motify_now(args).to(args.device)
     model = TGDRP(args).to(args.device)
-    # model = My_model(args).to(args.device)
-    model.load_state_dict(torch.load('./TGDRP_weights/TGDRP.pth', map_location=args.device))
 
     if args.mode == 'train':
         if args.pretrain and args.weight_path != '':
@@ -114,6 +111,7 @@ def main():
              "test": {'RMSE': test_rmse, 'MAE': test_MAE, 'pearson': test_r, 'R2': test_r2}})
 
     elif args.mode == 'test':
+        model.load_state_dict(torch.load('./TGDRP_weights/TGDRP.pth', map_location=args.device))
         test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, args.device)
         print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 3), round(test_MAE, 3),
                                                              round(test_r2, 3), round(test_r, 3)))
