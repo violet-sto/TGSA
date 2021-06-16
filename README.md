@@ -6,7 +6,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 
 - data/ contains the necessary dataset files;
 - models/ contains the implementation of TGDRP and SA;
-- weights contains the trained weights;
+- weights/ contains the trained weights;
 - utils/ contains the necessary processing subroutines;
 - preprocess_gene.py preprocessing for genetic profiles;
 - smiles2graph.py construct molecular graphs based on SMILES;
