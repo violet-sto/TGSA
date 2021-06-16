@@ -8,11 +8,8 @@ import pandas as pd
 from utils import load_data
 from utils import EarlyStopping, set_random_seed
 from utils import train, validate
-
-from models.My_model import My_model_motify_now, My_model_motify, My_model_motify_prelu
-# from models.My_model_combined import My_model_combined_now, My_model_combined
 from models.TGDRP import TGDRP
-from models.My_model import My_model_motify_now
+
 import argparse
 import fitlog
 
@@ -67,7 +64,7 @@ def main():
     # model = My_model_motify_now(args).to(args.device)
     model = TGDRP(args).to(args.device)
     # model = My_model(args).to(args.device)
-    model.load_state_dict(torch.load('./TGDRP_weights/TGDRP_42.pth', map_location=args.device))
+    model.load_state_dict(torch.load('./TGDRP_weights/TGDRP.pth', map_location=args.device))
 
     if args.mode == 'train':
         if args.pretrain and args.weight_path != '':
