@@ -21,5 +21,3 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 `data/CellLines_DepMap/CCLE_580_18281/census_706/` - Raw genetic profiles from CCLE and the processed features. You can also preprocess your own data with `preprocess_gene.py`.
 
 `data/IC50_GDSC/drug_smiles.csv` - SMILES for 170 drugs. You can generate pyg graph object with `smiles2graph.py`
-
-Coming soon!
