@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GINConv, JumpingKnowledge
+from torch_geometric.nn import GINConv, JumpingKnowledge, global_max_pool
 
 class GNN_drug(torch.nn.Module):
     def __init__(self, layer_drug, dim_drug):
@@ -24,8 +24,8 @@ class GNN_drug(torch.nn.Module):
             self.convs_drug.append(conv)
             self.bns_drug.append(bn)
 
-    def forward(self, x, edge_index):
-
+    def forward(self, drug):
+        x, edge_index, batch = drug.x, drug.edge_index, drug.batch
         x_drug_list = []
         for i in range(self.layer_drug):
             x = F.relu(self.convs_drug[i](x, edge_index))
@@ -33,5 +33,5 @@ class GNN_drug(torch.nn.Module):
             x_drug_list.append(x)
 
         node_representation = self.JK(x_drug_list)
-
-        return node_representation
+        x_drug = global_max_pool(node_representation, batch)
+        return x_drug

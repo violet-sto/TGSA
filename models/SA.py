@@ -12,6 +12,7 @@ class SA(nn.Module):
         self.cell_nodes_feature = cell_nodes.to(args.device)
         self.cell_edges = cell_edges.to(args.device)
         self.dropout = nn.Dropout(args.dropout_ratio)
+        self.dropout_ratio = args.dropout_ratio
         self.drug_emb = nn.Sequential(
             nn.Linear(384, 128),
             nn.ReLU(),

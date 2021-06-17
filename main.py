@@ -51,7 +51,7 @@ def main():
     args = arg_parse()
     set_random_seed(args.seed)
 
-    drug_dict = np.load('./data/feature/drug_feature_graph.npy', allow_pickle=True).item()
+    drug_dict = np.load('./data/Drugs/drug_feature_graph.npy', allow_pickle=True).item()
     cell_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
                         allow_pickle=True).item()
     edge_index = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format(args.edge))
@@ -111,10 +111,10 @@ def main():
              "test": {'RMSE': test_rmse, 'MAE': test_MAE, 'pearson': test_r, 'R2': test_r2}})
 
     elif args.mode == 'test':
-        model.load_state_dict(torch.load('./TGDRP_weights/TGDRP.pth', map_location=args.device))
+        model.load_state_dict(torch.load('./weights/TGDRP.pth', map_location=args.device))
         test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, args.device)
-        print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 3), round(test_MAE, 3),
-                                                             round(test_r2, 3), round(test_r, 3)))
+        print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 4), round(test_MAE, 4),
+                                                             round(test_r2, 4), round(test_r, 4)))
 
 if __name__ == "__main__":
     main()
