@@ -1,21 +1,4 @@
-data
-dataset
-data_split
-figure
-figure_high
-figure_low
-InfoGraph
-logs
-chem
-results
-.idea
-cv_128
-.fitlog/
-.fitconfig
-model_weights_cellblind
-model_weights_drugblind
-model_weight_pretrain
-
+.vscode
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
