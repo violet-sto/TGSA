@@ -370,8 +370,11 @@ class EarlyStopping():
     def __init__(self, mode='higher', patience=10, filename=None, metric=None):
         if filename is None:
             dt = datetime.datetime.now()
-            filename = './results/early_stop_{}_{:02d}-{:02d}-{:02d}.pth'.format(
-                dt.date(), dt.hour, dt.minute, dt.second)
+            folder = os.path.join(os.getcwd(), 'results')
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            filename = os.path.join(folder, 'early_stop_{}_{:02d}-{:02d}-{:02d}.pth'.format(
+                dt.date(), dt.hour, dt.minute, dt.second))
 
         if metric is not None:
             assert metric in ['r2', 'mae', 'rmse', 'roc_auc_score', 'pr_auc_score'], \
