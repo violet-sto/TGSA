@@ -12,7 +12,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 - `smiles2graph.py` construct molecular graphs based on SMILES;
 - `main.py main` function for TGDRP (train or test);
 
-# Requirements
+## Requirements
 - Pytorch==1.6.0
 - PyTorch Geometric==1.6.1
 
@@ -28,7 +28,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 You can run `python main.py -mode train` to train TGDRP or run `python main.py -mode test` to test trained TGDRP.
 
 ## Step3: SA
-You can run `python main_SA.py' to fine-tune TGDRP.
+You can run `python main_SA.py` to fine-tune TGDRP.
 
 # License
 MIT
