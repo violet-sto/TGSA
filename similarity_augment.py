@@ -11,8 +11,8 @@ from rdkit.Chem import MACCSkeys,AllChem
 from scipy.stats import pearsonr
 import argparse
 
-dir = 'similarity_augment/'
-dict_dir = 'similarity_augment/dict/'
+dir = './data/similarity_augment/'
+dict_dir = './data/similarity_augment/dict/'
 with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
     cell_id2idx_dict = pickle.load(f)
 with open(dict_dir + "drug_name_cell_id_ic50", 'rb') as f:
