@@ -24,7 +24,7 @@ class TGDRP(nn.Module):
         self.drug_emb = nn.Sequential(
             nn.Linear(self.dim_drug * self.layer_drug, 128),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(p=self.dropout_ratio),
         )
 
         # cell graph branch
@@ -33,10 +33,10 @@ class TGDRP(nn.Module):
         self.cell_emb = nn.Sequential(
             nn.Linear(self.dim_cell * self.GNN_cell.final_node, 1024),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(p=self.dropout_ratio),
             nn.Linear(1024, 256),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(p=self.dropout_ratio),
         )
 
         self.regression = nn.Sequential(
