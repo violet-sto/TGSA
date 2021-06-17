@@ -1,10 +1,8 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-from models.TGDRP import TGDRP
+from models.TGDRP import TGDRP, SA
 from utils import *
-from torch.utils.data import DataLoader
-from sklearn.model_selection import train_test_split
 import argparse
 import fitlog
 import pickle
@@ -19,7 +17,7 @@ def arg_parse():
     parser.add_argument('--device', type=str, default='cuda:0',
                         help='device')
     parser.add_argument('--knn', type=int, default=5,
-                        help='knn')
+                        help='k-nearest-neighbour')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='batch size (default: 128)')
     parser.add_argument('--lr', type=float, default=0.0001,
@@ -44,15 +42,14 @@ def main():
     args = arg_parse()
     set_random_seed(args.seed)
     train_loader, val_loader, test_loader = load_data_SA(args)
-    drug_nodes_data, cell_nodes_data, drug_edges, cell_edges = load_graph_data(args)
+    drug_nodes_data, cell_nodes_data, drug_edges, cell_edges = load_graph_data_SA(args)
     model = SA(drug_nodes_data, cell_nodes_data, drug_edges, cell_edges, args).to(args.device)
     if args.mode == "train":
         opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         criterion = nn.MSELoss()
-        parameter = torch.load("similarity_augment/parameter/parameter_{}.pth".format(args.seed), map_location=args.device)
+        parameter = torch.load("similarity_augment/parameter/parameter.pth", map_location=args.device)
         model.regression = parameter['regression']
         model.drug_emb = parameter['drug_emb']
-        model.cell_emb = parameter['cell_emb']
         model.drug_conv.load_state_dict(parameter['drug_conv'])
         log_folder = os.path.join(os.getcwd(), "logs", model._get_name())
         if not os.path.exists(log_folder):
@@ -94,7 +91,7 @@ def main():
         fitlog.finish()
 
     elif args.mode == "test":
-        model.load_state_dict(torch.load('./SA_weights/SA.pth', map_location=args.device))
+        model.load_state_dict(torch.load('./weights/SA.pth', map_location=args.device))
         test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, args)
         print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 3), round(test_MAE, 3),
                                                              round(test_r2, 3), round(test_r, 3)))
