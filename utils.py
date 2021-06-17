@@ -7,6 +7,8 @@ import datetime
 import random
 import os
 import csv
+import pickle
+from models.TGDRP import TGDRP
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Batch
 from sklearn.model_selection import train_test_split, KFold
@@ -16,7 +18,8 @@ from collections import defaultdict
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
-dict = './data/similarity_graph_data/dict'
+
+dict = './data/similarity_graph_data/dict/'
 with open(dict + "cell_id2idx_dict", 'rb') as f:
     cell_id2idx_dict = pickle.load(f)
 with open(dict + "drug_name2idx_dict", 'rb') as f:
@@ -642,11 +645,11 @@ def load_data_SA(args):
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
     return train_loader, val_loader, test_loader
 
-def load_graph_data(args):
+def load_graph_data_SA(args):
     drug_id2graph_dict = np.load('./data/feature/drug_feature_graph.npy', allow_pickle=True).item()
     cell_name2feature_706_3_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
                                         allow_pickle=True).item()
-    drug_name = pd.read_csv("data/"+"drug_smiles.csv").iloc[:, 0]
+    drug_name = pd.read_csv("./data/"+"drug_smiles.csv").iloc[:, 0]
     cell_idx2feature_706_3_dict = {u: cell_name2feature_706_3_dict[v] for u, v in cell_idx2id_dict.items()}
     drug_idx2graph_dict = {u: drug_id2graph_dict[v] for u, v in enumerate(drug_name)}
     drug_graph = [x for _, x in drug_idx2graph_dict.items()]
@@ -657,9 +660,8 @@ def load_graph_data(args):
     for u in cell_graph:
         u.edge_index = cell_feature_edge_index
     set_random_seed(args.seed)
-    model = TGCN(args).to(args.device)
-    tgcn = torch.load('/model_weights_pretrain/TGCN_{}.pth'.format(args.seed), map_location=args.device)
-    model.load_state_dict(tgcn)
+    model = TGDRP(args).to(args.device)
+    model.load_state_dict(torch.load('/model_weights_pretrain/TGCN_{}.pth'.format(args.seed), map_location=args.device))
     drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
     cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
     
