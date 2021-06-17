@@ -659,10 +659,8 @@ def load_graph_data_SA(args):
     model = TGDRP(args).to(args.device)
     model.load_state_dict(torch.load('./weights/TGDRP.pth', map_location=args.device))
     drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
-    # cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
-    cell_list = [model.GNN_cell(Batch.from_data_list(cell_graph[id:id+1]).to(args.device)) for id in range(0,580)]
-    cell_nodes = torch.cat(cell_list).detach()
-    
+    cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
+
     with open("./data/similarity_augment/edge/drug_cell_edges_{}_knn".format(args.knn), 'rb') as f:
         drug_edges, cell_edges = pickle.load(f)
     drug_edges = torch.tensor(drug_edges, dtype=torch.long).t()
