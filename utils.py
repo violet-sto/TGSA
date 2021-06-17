@@ -7,6 +7,8 @@ import datetime
 import random
 import os
 import csv
+import pickle
+from models.TGDRP import TGDRP
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Batch
 from sklearn.model_selection import train_test_split, KFold
@@ -16,14 +18,15 @@ from collections import defaultdict
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
-dict = './data/similarity_graph_data/dict'
-with open(dict + "cell_id2idx_dict", 'rb') as f:
+
+dict_dir = './data/similarity_augment/dict/'
+with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
     cell_id2idx_dict = pickle.load(f)
-with open(dict + "drug_name2idx_dict", 'rb') as f:
+with open(dict_dir + "drug_name2idx_dict", 'rb') as f:
     drug_name2idx_dict = pickle.load(f)
-with open(dict + "cell_idx2id_dict", 'rb') as f:
+with open(dict_dir + "cell_idx2id_dict", 'rb') as f:
     cell_idx2id_dict = pickle.load(f)
-with open(dict + "drug_idx2name_dict", 'rb') as f:
+with open(dict_dir + "drug_idx2name_dict", 'rb') as f:
     drug_idx2name_dict = pickle.load(f)
 
 
@@ -615,10 +618,6 @@ def validate_SA(loader, model, args):
 class MyDataset_SA(Dataset):
     def __init__(self, IC):
         super(MyDataset_SA, self).__init__()
-        with open('pyg_data/' + "cell_id2idx_dict", 'rb') as f:
-            self.cell_id2idx_dict = pickle.load(f)
-        with open('pyg_data/' + "drug_name2idx_dict", 'rb') as f:
-            self.drug_name2idx_dict = pickle.load(f)
         IC.reset_index(drop=True, inplace=True)
         self.drug_name = IC['Drug name']
         self.Cell_line_name = IC['DepMap_ID']
@@ -628,7 +627,7 @@ class MyDataset_SA(Dataset):
         return len(self.value)
 
     def __getitem__(self, index):
-        return (self.drug_name2idx_dict[self.drug_name[index]], self.cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
+        return (drug_name2idx_dict[self.drug_name[index]], cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
     
     
 def load_data_SA(args):
@@ -642,28 +641,29 @@ def load_data_SA(args):
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
     return train_loader, val_loader, test_loader
 
-def load_graph_data(args):
-    drug_id2graph_dict = np.load('./data/feature/drug_feature_graph.npy', allow_pickle=True).item()
-    cell_name2feature_706_3_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
+def load_graph_data_SA(args):
+    drug_id2graph_dict = np.load('./data/Drugs/drug_feature_graph.npy', allow_pickle=True).item()
+    cell_name2feature_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
                                         allow_pickle=True).item()
-    drug_name = pd.read_csv("data/"+"drug_smiles.csv").iloc[:, 0]
-    cell_idx2feature_706_3_dict = {u: cell_name2feature_706_3_dict[v] for u, v in cell_idx2id_dict.items()}
+    drug_name = pd.read_csv("./data/Drugs/drug_smiles.csv").iloc[:, 0]
+    cell_idx2feature_dict = {u: cell_name2feature_dict[v] for u, v in cell_idx2id_dict.items()}
     drug_idx2graph_dict = {u: drug_id2graph_dict[v] for u, v in enumerate(drug_name)}
     drug_graph = [x for _, x in drug_idx2graph_dict.items()]
-    cell_graph = [x for _, x in cell_idx2feature_706_3_dict.items()]
+    cell_graph = [x for _, x in cell_idx2feature_dict.items()]
     cell_feature_edge_index = np.load(
-        './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format('PPI_0.95'))
+        './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format(args.edge))
     cell_feature_edge_index = torch.tensor(cell_feature_edge_index, dtype=torch.long)
     for u in cell_graph:
         u.edge_index = cell_feature_edge_index
     set_random_seed(args.seed)
-    model = TGCN(args).to(args.device)
-    tgcn = torch.load('/model_weights_pretrain/TGCN_{}.pth'.format(args.seed), map_location=args.device)
-    model.load_state_dict(tgcn)
+    model = TGDRP(args).to(args.device)
+    model.load_state_dict(torch.load('./weights/TGDRP.pth', map_location=args.device))
     drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
-    cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
+    # cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
+    cell_list = [model.GNN_cell(Batch.from_data_list(cell_graph[id:id+1]).to(args.device)) for id in range(0,580)]
+    cell_nodes = torch.cat(cell_list).detach()
     
-    with open("similarity_graph_data/" + "edge/drug_cell_edges_{}_knn".format(args.knn), 'rb') as f:
+    with open("./data/similarity_augment/edge/drug_cell_edges_{}_knn".format(args.knn), 'rb') as f:
         drug_edges, cell_edges = pickle.load(f)
     drug_edges = torch.tensor(drug_edges, dtype=torch.long).t()
     cell_edges = torch.tensor(cell_edges, dtype=torch.long).t()

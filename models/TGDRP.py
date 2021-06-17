@@ -1,12 +1,7 @@
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch_geometric.nn import global_max_pool, max_pool, global_add_pool, global_mean_pool
 from models.GNN_drug import GNN_drug
 from models.GNN_cell import GNN_cell
-import torch_geometric.transforms as T
 
 class TGDRP(nn.Module):
     def __init__(self, args):
@@ -51,10 +46,7 @@ class TGDRP(nn.Module):
 
     def forward(self, drug, cell):
         # forward drug
-        x, edge_index, batch = drug.x, drug.edge_index, drug.batch
-
-        node_representation = self.GNN_drug(x, edge_index)
-        x_drug = global_max_pool(node_representation, batch)
+        x_drug = self.GNN_drug(drug)
         x_drug = self.drug_emb(x_drug)
 
         # forward cell
