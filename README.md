@@ -32,7 +32,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 ## Step3: Similarity Augment
 - First, you can run `heterogeneous_graph.py` to generate edges of heterogeneous graphs.
 
-- Then, you can run `main_SA.py` to generate node features of heterogeneous graphs using two GNNs from TGDRP/TGDRP_pre and to fine-tune sequentially the remained parameters from TGDRP/TGDRP_pre.  To be specific, you can use the instruction `python main_SA.py --mode "train"/"test" --pretrain 0/1` to fine-tune TGDRP/TGDRP_pre or to test fine-tuned SA/SA_pre.  
+- Then, you can run `main_SA.py` to generate node features of heterogeneous graphs using two GNNs from TGDRP/TGDRP_pre and to fine-tune sequentially the remaining parameters from TGDRP/TGDRP_pre.  To be specific, you can use the instruction `python main_SA.py --mode "train"/"test" --pretrain 0/1` to fine-tune TGDRP/TGDRP_pre or to test fine-tuned SA/SA_pre.  
 
 # License
 MIT
