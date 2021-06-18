@@ -20,7 +20,7 @@ Here we provide an implementation of Twin Graph neural networks with Similarity 
 ## Step1: Data Preprocessing
 - `data/CellLines_DepMap/CCLE_580_18281/census_706/` - Raw genetic profiles from CCLE and the processed features. You can also preprocess your own data with `preprocess_gene.py`.
 
-- `data/similarity_augment/` - Directory `edge` contains edges of heterogeneous graphs; directory `parameter` contains parameters needed in finetuning TGDRP or TGDRP_pre; directory `dict` contains dictionaries for mapping between drug data or cell line data. 
+- `data/similarity_augment/` - Directory `edge` contains edges of heterogeneous graphs; directory `parameter` contains parameters needed in finetuning TGDRP or TGDRP_pre; directory `dict` contains necessary data and dictionaries for mapping between drug data or cell line data. 
 
 - `data/Drugs/drug_smiles.csv` - SMILES for 170 drugs. You can generate pyg graph object with `smiles2graph.py`
 
