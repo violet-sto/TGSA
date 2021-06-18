@@ -112,15 +112,5 @@ def computing_knn(k):
         pickle.dump((drug_edges, cell_edges), f)
 
 
-
-def computing_parameters_SA():
-    args = arg_parse()
-    weight = "TGDRP_pre" if args.pretrain else "TGDRP"
-    model = TGDRP(args).to(args.device)
-    tgdrp = torch.load('weights/{}.pth'.format(weight), map_location=args.device)
-    model.load_state_dict(tgdrp)                           
-    torch.save({'drug_emb':model.drug_emb, 'regression':model.regression}, "./data/similarity_augment/parameter/{}_parameter.pth".format(weight))
-    
 if __name__ == '__main__':
     computing_knn(5)
-    computing_parameters_SA()

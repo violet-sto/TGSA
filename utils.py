@@ -651,8 +651,8 @@ def load_graph_data_SA(args):
     drug_name = pd.read_csv("./data/Drugs/drug_smiles.csv").iloc[:, 0]
     cell_idx2feature_dict = {u: cell_name2feature_dict[v] for u, v in cell_idx2id_dict.items()}
     drug_idx2graph_dict = {u: drug_id2graph_dict[v] for u, v in enumerate(drug_name)}
-    drug_graph = [x for _, x in drug_idx2graph_dict.items()]
-    cell_graph = [x for _, x in cell_idx2feature_dict.items()]
+    drug_graph = [u for _, u in drug_idx2graph_dict.items()]
+    cell_graph = [u for _, u in cell_idx2feature_dict.items()]
     cell_feature_edge_index = np.load(
         './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format(args.edge))
     cell_feature_edge_index = torch.tensor(cell_feature_edge_index, dtype=torch.long)
@@ -662,8 +662,8 @@ def load_graph_data_SA(args):
     weight = "TGDRP_pre" if args.pretrain else "TGDRP"
     model = TGDRP(args).to(args.device)
     model.load_state_dict(torch.load('./weights/{}.pth'.format(weight), map_location=args.device))
+    parameter = {'drug_emb':model.drug_emb, 'regression':model.regression}
     drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
-    # cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
     cell_list = [model.GNN_cell(Batch.from_data_list(cell_graph[id:id+1]).to(args.device)) for id in range(0,580)]
     cell_nodes = torch.cat(cell_list).detach()
 
@@ -671,4 +671,4 @@ def load_graph_data_SA(args):
         drug_edges, cell_edges = pickle.load(f)
     drug_edges = torch.tensor(drug_edges, dtype=torch.long).t()
     cell_edges = torch.tensor(cell_edges, dtype=torch.long).t()
-    return drug_nodes, cell_nodes, drug_edges, cell_edges
+    return drug_nodes, cell_nodes, drug_edges, cell_edges, parameter

@@ -12,7 +12,7 @@ import pandas as pd
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=44,
-                        help='random seed (default: 50)')
+                        help='random seed (default: 44)')
     parser.add_argument('--device', type=str, default='cuda:7',
                         help='device')
     parser.add_argument('--knn', type=int, default=5,
@@ -46,13 +46,12 @@ def main():
     args = arg_parse()
     set_random_seed(args.seed)
     train_loader, val_loader, test_loader = load_data_SA(args)
-    drug_nodes_data, cell_nodes_data, drug_edges, cell_edges = load_graph_data_SA(args)
+    drug_nodes_data, cell_nodes_data, drug_edges, cell_edges, parameter = load_graph_data_SA(args)
     model = SA(drug_nodes_data, cell_nodes_data, drug_edges, cell_edges, args).to(args.device)
     if args.mode == "train":
         opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         criterion = nn.MSELoss()
         weight = "TGDRP_pre" if args.pretrain else "TGDRP"
-        parameter = torch.load("./data/similarity_augment/parameter/{}_parameter.pth".format(weight), map_location=args.device)
         model.regression = parameter['regression']
         model.drug_emb = parameter['drug_emb']
         log_folder = os.path.join(os.getcwd(), "logs", model._get_name())
