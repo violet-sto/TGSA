@@ -33,8 +33,7 @@ You can run `python main.py -mode train` to train TGDRP or run `python main.py -
 First, you can run `similarity_augment.py` to generate edges of heterogeneous graphs and necessary parameters for SA.
 
 Then, you can run `main_SA.py` to fine-tune TGDRP/TGDRP_pre.  
-`python main.py -mode train -pretrain 0/1` to fine-tune TGDRP/TGDRP_pre.  
-`python main.py -mode test -pretrain 0/1` to test fine-tuned SA/SA_pre.  
+`python main.py -mode train/test -pretrain 0/1` to fine-tune TGDRP/TGDRP_pre or to test fine-tuned SA/SA_pre.  
 
 # License
 MIT
