@@ -9,12 +9,11 @@ import pickle
 import pandas as pd
 
 
-
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=44,
-                        help='random seed (default: 44)')
-    parser.add_argument('--device', type=str, default='cuda:0',
+                        help='random seed (default: 50)')
+    parser.add_argument('--device', type=str, default='cuda:7',
                         help='device')
     parser.add_argument('--knn', type=int, default=5,
                         help='k-nearest-neighbour')
@@ -36,6 +35,7 @@ def arg_parse():
                         help='patience for earlystopping (default: 10)')
     parser.add_argument('--edge', type=str, default='PPI_0.95', help='edge for gene graph')
     parser.add_argument('--mode', type=str, default='train', help='train or test')
+    parser.add_argument('--pretrain', type=int, default=1, help='pretrain(0 or 1)')
     parser.add_argument('--weight_path', type=str, default='',
                         help='filepath for pretrained weights')
 
@@ -51,7 +51,8 @@ def main():
     if args.mode == "train":
         opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         criterion = nn.MSELoss()
-        parameter = torch.load("./data/similarity_augment/parameter/parameter.pth", map_location=args.device)
+        weight = "TGDRP_pre" if args.pretrain else "TGDRP"
+        parameter = torch.load("./data/similarity_augment/parameter/{}_parameter.pth".format(weight), map_location=args.device)
         model.regression = parameter['regression']
         model.drug_emb = parameter['drug_emb']
         log_folder = os.path.join(os.getcwd(), "logs", model._get_name())
@@ -94,7 +95,8 @@ def main():
         fitlog.finish()
 
     elif args.mode == "test":
-        model.load_state_dict(torch.load('./weights/SA.pth', map_location=args.device)['model_state_dict'])
+        weight = "SA_pre" if args.pretrain else "SA"
+        model.load_state_dict(torch.load('./weights/{}.pth'.format(weight), map_location=args.device)['model_state_dict'])
         test_rmse, test_MAE, test_r2, test_r = validate_SA(test_loader, model, args)
         print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 4), round(test_MAE, 4),
                                                              round(test_r2, 4), round(test_r, 4)))

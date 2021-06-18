@@ -33,6 +33,40 @@ with open(dict_dir + "cell_feature_normalized", 'rb') as f:
     cell_feature_normalized = pickle.load(f)
 with open(dict_dir + "cell_feature", 'rb') as f:
     cell_feature = pickle.load(f)
+
+def arg_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', type=int, default=42,
+                        help='random seed (default: 42)')
+    parser.add_argument('--device', type=str, default='cuda:7',
+                        help='device')
+    parser.add_argument('--knn', type=int, default=5,
+                        help='knn')
+    parser.add_argument('--batch_size', type=int, default=128,
+                        help='batch size (default: 128)')
+    parser.add_argument('--lr', type=float, default=0.0001,
+                        help='learning rate (default: 0.0001)')
+    parser.add_argument('--layer_drug', type=int, default=3, help='layer for drug')
+    parser.add_argument('--dim_drug', type=int, default=128, help='hidden dim for drug')
+    parser.add_argument('--layer', type=int, default=2, help='number of GNN layer')
+    parser.add_argument('--hidden_dim', type=int, default=8, help='hidden dim for cell')
+    parser.add_argument('--weight_decay', type=float, default=0,
+                        help='weight decay')
+    parser.add_argument('--dropout_ratio', type=float, default=0.2,
+                        help='dropout ratio')
+    parser.add_argument('--epochs', type=int, default=300,
+                        help='maximum number of epochs (default: 300)')
+    parser.add_argument('--patience', type=int, default=10,
+                        help='patience for earlystopping (default: 10)')
+    parser.add_argument('--edge', type=str, default='PPI_0.95', help='edge for gene graph')
+    parser.add_argument('--mode', type=str, default='train', help='train or test')
+    parser.add_argument('--pretrain', type=int, default=0, help='pretrain')
+    parser.add_argument('--weight_path', type=str, default='',
+                        help='filepath for pretrained weights')
+
+    return parser.parse_args(args=[])
+
+
     
 def computing_sim_matrix():
     if os.path.exists(dict_dir + "cell_sim_matrix") and  os.path.exists(dict_dir + "drug_sim_matrix"):
@@ -76,45 +110,16 @@ def computing_knn(k):
     cell_edges = np.argwhere(cell_sim_matrix_new >  0)
     with open(dir + "edge/drug_cell_edges_{}_knn".format(k), 'wb') as f:
         pickle.dump((drug_edges, cell_edges), f)
-    
-def arg_parse():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=42,
-                        help='random seed (default: 42)')
-    parser.add_argument('--device', type=str, default='cuda:7',
-                        help='device')
-    parser.add_argument('--knn', type=int, default=5,
-                        help='knn')
-    parser.add_argument('--batch_size', type=int, default=128,
-                        help='batch size (default: 128)')
-    parser.add_argument('--lr', type=float, default=0.0001,
-                        help='learning rate (default: 0.0001)')
-    parser.add_argument('--layer_drug', type=int, default=3, help='layer for drug')
-    parser.add_argument('--dim_drug', type=int, default=128, help='hidden dim for drug')
-    parser.add_argument('--layer', type=int, default=2, help='number of GNN layer')
-    parser.add_argument('--hidden_dim', type=int, default=8, help='hidden dim for cell')
-    parser.add_argument('--weight_decay', type=float, default=0,
-                        help='weight decay')
-    parser.add_argument('--dropout_ratio', type=float, default=0.2,
-                        help='dropout ratio')
-    parser.add_argument('--epochs', type=int, default=300,
-                        help='maximum number of epochs (default: 300)')
-    parser.add_argument('--patience', type=int, default=10,
-                        help='patience for earlystopping (default: 10)')
-    parser.add_argument('--edge', type=str, default='PPI_0.95', help='edge for gene graph')
-    parser.add_argument('--mode', type=str, default='train', help='train or test')
-    parser.add_argument('--weight_path', type=str, default='',
-                        help='filepath for pretrained weights')
 
-    return parser.parse_args(args=[])
 
 
 def computing_parameters_SA():
     args = arg_parse()
+    weight = "TGDRP_pre" if args.pretrain else "TGDRP"
     model = TGDRP(args).to(args.device)
-    tgdrp = torch.load('weights/TGDRP.pth', map_location=args.device)
+    tgdrp = torch.load('weights/{}.pth'.format(weight), map_location=args.device)
     model.load_state_dict(tgdrp)                           
-    torch.save({'drug_emb':model.drug_emb, 'regression':model.regression}, "./data/similarity_augment/parameter/parameter.pth")
+    torch.save({'drug_emb':model.drug_emb, 'regression':model.regression}, "./data/similarity_augment/parameter/{}_parameter.pth".format(weight))
     
 if __name__ == '__main__':
     computing_knn(5)
