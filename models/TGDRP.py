@@ -3,12 +3,14 @@ import torch.nn as nn
 from models.GNN_drug import GNN_drug
 from models.GNN_cell import GNN_cell
 
+
 class TGDRP(nn.Module):
-    def __init__(self, args):
+    def __init__(self, cluster_predefine, args):
         super().__init__()
         self.batch_size = args.batch_size
         self.layer_drug = args.layer_drug
         self.dim_drug = args.dim_drug
+        self.num_feature = args.num_feature
         self.layer_cell = args.layer
         self.dim_cell = args.hidden_dim
         self.dropout_ratio = args.dropout_ratio
@@ -17,13 +19,13 @@ class TGDRP(nn.Module):
         self.GNN_drug = GNN_drug(self.layer_drug, self.dim_drug)
 
         self.drug_emb = nn.Sequential(
-            nn.Linear(self.dim_drug * self.layer_drug, 128),
+            nn.Linear(self.dim_drug * self.layer_drug, 256),
             nn.ReLU(),
             nn.Dropout(p=self.dropout_ratio),
         )
 
         # cell graph branch
-        self.GNN_cell = GNN_cell(self.layer_cell, self.dim_cell, args)
+        self.GNN_cell = GNN_cell(self.num_feature, self.layer_cell, self.dim_cell, cluster_predefine)
 
         self.cell_emb = nn.Sequential(
             nn.Linear(self.dim_cell * self.GNN_cell.final_node, 1024),
@@ -35,13 +37,13 @@ class TGDRP(nn.Module):
         )
 
         self.regression = nn.Sequential(
-            nn.Linear(384, 384),
+            nn.Linear(512, 512),
             nn.ELU(),
             nn.Dropout(p=self.dropout_ratio),
-            nn.Linear(384, 384),
+            nn.Linear(512, 512),
             nn.ELU(),
             nn.Dropout(p=self.dropout_ratio),
-            nn.Linear(384, 1)
+            nn.Linear(512, 1)
         )
 
     def forward(self, drug, cell):
@@ -58,4 +60,5 @@ class TGDRP(nn.Module):
         x = self.regression(x)
 
         return x
+
 
