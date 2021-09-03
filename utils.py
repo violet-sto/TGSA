@@ -8,6 +8,7 @@ import random
 import os
 import csv
 import pickle
+import math
 from models.TGDRP import TGDRP
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Batch
@@ -15,11 +16,12 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.model_selection import StratifiedKFold
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from collections import defaultdict
+from preprocess_gene import get_STRING_graph, get_predefine_cluster
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
 
-dict_dir = './data/similarity_augment/dict/'
+dict_dir = '/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/similarity_augment/dict/'
 with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
     cell_id2idx_dict = pickle.load(f)
 with open(dict_dir + "drug_name2idx_dict", 'rb') as f:
@@ -77,7 +79,74 @@ def validate(model, loader, device):
 
     return rmse, MAE, r2, r
 
+def gradient(model, drug_name, cell_name, drug_dict, cell_dict, edge_index, args):
+    cell_dict[cell_name].edge_index = torch.tensor(edge_index, dtype=torch.long)
+    drug = Batch.from_data_list([drug_dict[drug_name]]).to(args.device)
+    cell = Batch.from_data_list([cell_dict[cell_name]]).to(args.device)
+    
+    model.eval()
+    drug_representation = model.GNN_drug(drug)
+    drug_representation = model.drug_emb(drug_representation)
 
+    cell_node, cell_representation = model.GNN_cell.grad_cam(cell)
+    cell_representation = model.cell_emb(cell_representation)
+
+    # combine drug feature and cell line feature
+    x = torch.cat([drug_representation, cell_representation], -1)
+    ic50 = model.regression(x)
+    ic50.backward()
+    # cell_node_importance = torch.relu((cell_node*torch.mean(cell_node.grad, dim=0)).sum(dim=1))
+    cell_node_importance = torch.abs((cell_node*torch.mean(cell_node.grad, dim=0)).sum(dim=1))
+    cell_node_importance = cell_node_importance/cell_node_importance.sum()
+    sorted, indices = torch.sort(cell_node_importance, descending=True)
+    return ic50, indices.cpu()
+
+def inference(model, drug_dict, cell_dict, edge_index, save_name, args):
+    model.eval()
+    IC = pd.read_csv("/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/IC50_GDSC/PANCANCER_IC_82833_580_170.csv")
+    if args.setup == 'known':
+        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
+        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+                                             stratify=val_test_set['Cell line name'])
+        
+    cell_table = IC[["DepMap_ID", "stripped_cell_line_name"]].drop_duplicates(keep='first')
+    drug_table = IC["Drug name"].drop_duplicates(keep='first').to_frame()
+    cell_table['value'] = 1
+    drug_table['value'] = 1
+    drug_cell_table = drug_table.merge(cell_table, how='left', on='value')
+    del drug_cell_table['value']
+    unknown_set = drug_cell_table.append(IC[["Drug name", "DepMap_ID", "stripped_cell_line_name"]])
+    unknown_set.drop_duplicates(keep=False, inplace=True)
+    dataset = {'train':train_set, 'val':val_set, 'test':test_set, 'unknown':unknown_set}
+    writer = pd.ExcelWriter(save_name)
+    for dataset_name, data in dataset.items():
+        data.reset_index(drop=True, inplace=True)
+        IC50_pred = []
+        with torch.no_grad():
+            drug_name, cell_ID, cell_line_name = data['Drug name'], data["DepMap_ID"], data["stripped_cell_line_name"]
+            for cell in cell_ID:
+                cell_dict[cell].edge_index = torch.tensor(edge_index, dtype=torch.long)
+            drug_list = [drug_dict[name] for name in drug_name]
+            cell_list = [cell_dict[name] for name in cell_ID]
+            batch_size = 2048
+            batch_num = math.ceil(len(drug_list)/batch_size)
+            for index in range(batch_num):
+                drug = Batch.from_data_list(drug_list[index*batch_size:(index+1)*batch_size]).to(args.device)
+                cell = Batch.from_data_list(cell_list[index*batch_size:(index+1)*batch_size]).to(args.device)
+                y_pred = model(drug, cell)
+                IC50_pred.append(y_pred)
+            IC50_pred = torch.cat(IC50_pred, dim=0)
+        table = pd.concat([drug_name, cell_ID, cell_line_name], axis=1)
+        if dataset_name != 'unknown':
+            table["IC50"] = data["IC50"]
+        table["IC50_Pred"] = IC50_pred.cpu().numpy()
+        if dataset_name != 'unknown':
+            table["Abs_error"] = np.abs(IC50_pred.cpu().numpy()-np.array(table["IC50"]).reshape(-1,1))
+        table.to_excel(writer, sheet_name=dataset_name, index=False)
+        torch.cuda.empty_cache()
+    writer.close()
+        
+        
 class MyDataset(Dataset):
     def __init__(self, drug_dict, cell_dict, IC, edge_index):
         super(MyDataset, self).__init__()
@@ -152,7 +221,7 @@ def _collate_CDR(samples):
     return batched_graph, [torch.stack(exp, 0), torch.stack(cn, 0), torch.stack(mu, 0)], torch.tensor(labels)
 
 
-def load_data(IC, drug_dict, cell_dict, edge_index, model, args):
+def load_data(IC, drug_dict, cell_dict, edge_index, args):
     if args.setup == 'known':
         train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
         val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
@@ -179,21 +248,21 @@ def load_data(IC, drug_dict, cell_dict, edge_index, model, args):
     else:
         raise ValueError
 
-    if model == 'TCNN':
+    if args.model == 'TCNN':
         Dataset = MyDataset_name
         collate_fn = None
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
         val_dataset = Dataset(drug_dict, cell_dict, val_set)
         test_dataset = Dataset(drug_dict, cell_dict, test_set)
 
-    elif model == 'GraphDRP':
+    elif args.model == 'GraphDRP':
         Dataset = MyDataset_name
         collate_fn = _collate_drp
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
         val_dataset = Dataset(drug_dict, cell_dict, val_set)
         test_dataset = Dataset(drug_dict, cell_dict, test_set)
 
-    elif model == 'DeepCDR':
+    elif args.model == 'DeepCDR':
         Dataset = MyDataset_CDR
         collate_fn = _collate_CDR
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
@@ -654,18 +723,22 @@ def load_graph_data_SA(args):
     drug_graph = [u for _, u in drug_idx2graph_dict.items()]
     cell_graph = [u for _, u in cell_idx2feature_dict.items()]
     cell_feature_edge_index = np.load(
-        './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_{}.npy'.format(args.edge))
+        './data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_PPI_{}.npy'.format(args.edge))
     cell_feature_edge_index = torch.tensor(cell_feature_edge_index, dtype=torch.long)
     for u in cell_graph:
         u.edge_index = cell_feature_edge_index
     set_random_seed(args.seed)
+    genes_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
     weight = "TGDRP_pre" if args.pretrain else "TGDRP"
-    model = TGDRP(args).to(args.device)
-    model.load_state_dict(torch.load('./weights/{}.pth'.format(weight), map_location=args.device))
-    parameter = {'drug_emb':model.drug_emb, 'regression':model.regression}
+    edge_index = get_STRING_graph(genes_path, args.edge)
+    cluster_predefine = get_predefine_cluster(edge_index, genes_path, args.edge, args.device)
+    args.num_feature = 3
+    model = TGDRP(cluster_predefine, args).to(args.device)
+    model.load_state_dict(torch.load('./weights/{}.pth'.format(weight), map_location=args.device)['model_state_dict'])
+    parameter = {'drug_emb':model.drug_emb, 'cell_emb':model.cell_emb, 'regression':model.regression}
     drug_nodes = model.GNN_drug(Batch.from_data_list(drug_graph).to(args.device)).detach()
-    cell_list = [model.GNN_cell(Batch.from_data_list(cell_graph[id:id+1]).to(args.device)) for id in range(0,580)]
-    cell_nodes = torch.cat(cell_list).detach()
+    cell_nodes = model.GNN_cell(Batch.from_data_list(cell_graph).to(args.device)).detach()
+
 
     with open("./data/similarity_augment/edge/drug_cell_edges_{}_knn".format(args.knn), 'rb') as f:
         drug_edges, cell_edges = pickle.load(f)
