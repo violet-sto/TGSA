@@ -13,30 +13,32 @@ class SA(nn.Module):
         self.cell_edges = cell_edges.to(args.device)
         self.dropout = nn.Dropout(args.dropout_ratio)
         self.dropout_ratio = args.dropout_ratio
+        self.dim_cell = cell_nodes.size(1)
+        self.dim_drug = drug_nodes.size(1)
         self.drug_emb = nn.Sequential(
-            nn.Linear(384, 128),
+            nn.Linear(self.dim_drug, 256),
             nn.ReLU(),
             nn.Dropout(self.dropout_ratio)
         )
         self.cell_emb = nn.Sequential(
-            nn.Linear(3504, 1024),
+            nn.Linear(self.dim_cell, 1024),
             nn.ReLU(),
             nn.Dropout(self.dropout_ratio),
             nn.Linear(1024, 256),
             nn.ReLU(),
             nn.Dropout(self.dropout_ratio)
         )
-        self.drug_conv = SAGEConv(384, 128)
-        self.cell_conv_1 = SAGEConv(3504, 1024)
+        self.drug_conv = SAGEConv(self.dim_drug, 256)
+        self.cell_conv_1 = SAGEConv(self.dim_cell, 1024)
         self.cell_conv_2 = SAGEConv(1024, 256)
         self.regression = nn.Sequential(
-            nn.Linear(384, 384),
+            nn.Linear(512, 512),
             nn.ELU(),
             nn.Dropout(self.dropout_ratio),
-            nn.Linear(384, 384),
+            nn.Linear(512, 512),
             nn.ELU(),
             nn.Dropout(self.dropout_ratio),
-            nn.Linear(384, 1)
+            nn.Linear(512, 1)
         )
 
     def forward(self, drug, cell):
