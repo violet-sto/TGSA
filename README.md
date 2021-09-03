@@ -26,9 +26,8 @@ Cancel changes
 
 - `data/PANCANCER_IC_82833_580_170.csv` - There are 82833 ln(IC50) values across 580 cel lines and 170 drugs.
 
-- `data/9606.protein.links.detailed.v11.0.txt`  
-- `data/9606.protein.info.v11.0.txt`  
-    1. download from https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
+- `data/9606.protein.links.detailed.v11.0.txt` and `data/9606.protein.info.v11.0.txt`  
+   download from https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
 
 ## Step2: Model Training/Testing
 - You can run `python main.py --mode "train"` to train TGDRP or run `python main.py --mode "test"` to test trained TGDRP.
