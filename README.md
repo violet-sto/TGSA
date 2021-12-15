@@ -21,6 +21,7 @@ Cancel changes
 - pip install torch-scatter (2.0.6) (https://pytorch-geometric.com/whl/)
 - pip install torch-sparse (0.6.9) (https://pytorch-geometric.com/whl/)
 - pip install torch-spline-conv (1.2.1) (https://pytorch-geometric.com/whl/)
+- pip install torch-geometric (1.6.1)
 
 # Implementation
 ## Step1: Data Preprocessing
