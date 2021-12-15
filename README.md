@@ -17,8 +17,8 @@ Cancel changes
   conda create -n TGSA python=3.6
 - Install the necessary packages.
   conda install -c rdkit rdkit  
-  pip install torch (1.6.0)   
   pip install fitlog   
+  pip install torch (1.6.0)   
   pip install torch-cluster (1.5.9) (https://pytorch-geometric.com/whl/)  
   pip install torch-scatter (2.0.6) (https://pytorch-geometric.com/whl/)   
   pip install torch-sparse (0.6.9) (https://pytorch-geometric.com/whl/)   
