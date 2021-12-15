@@ -15,7 +15,7 @@ Cancel changes
 ## Requirements
 - Please install the environment using anaconda3;  
   conda create -n TGSA python=3.6
-- Install the necessary packages.
+- Install the necessary packages.  
   conda install -c rdkit rdkit  
   pip install fitlog   
   pip install torch (1.6.0)   
