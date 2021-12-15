@@ -13,7 +13,7 @@ Cancel changes
 - `main.py main` function for TGDRP (train or test);
 
 ## Requirements
-- Please install the environment using anaconda3;
+- Please install the environment using anaconda3;  
   conda create -n TGSA python=3.6
 - Install the necessary packages.
   conda install -c rdkit rdkit  
