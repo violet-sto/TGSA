@@ -13,8 +13,14 @@ Cancel changes
 - `main.py main` function for TGDRP (train or test);
 
 ## Requirements
-- Pytorch==1.6.0
-- PyTorch Geometric==1.6.1
+- conda create -n TGSA python=3.6
+- pip install torch (1.6.0)
+- pip install torch-cluster (1.5.9)
+- pip install torch-scatter (2.0.6)
+- pip install torch-sparse (0.6.9)
+- pip install torch-spline-conv (1.2.1)
+- pip install fitlog
+- conda install -c rdkit rdkit
 
 # Implementation
 ## Step1: Data Preprocessing
